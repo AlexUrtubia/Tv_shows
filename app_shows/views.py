@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import *
+from django.contrib import messages
 
 # Create your views here.
 def inicio(request):
@@ -13,11 +14,20 @@ def shows(request):
 
 
 def create_show(request):
-    return render(request, 'create_show.html')
+    context = {
+    'today': str(date.today())
+    }
+    return render(request, 'create_show.html', context)
 
 
 def add_show(request):
-    Show.objects.create(
+    errores = Show.objects.basic_validator(request.POST)
+    if len(errores) > 0:
+        for key, value in errores.items():
+            messages.error(request, value)
+        return redirect("/shows/new")
+    else:
+        Show.objects.create(
         title=request.POST['title'],
         network = request.POST['network'],
         release_date = request.POST['r_date'],
@@ -41,13 +51,19 @@ def edit_show(request, show_id):
 
 
 def update_show(request, show_id):
-    show = Show.objects.get(id=show_id)
-    show.title = request.POST['ed_title']
-    show.network = request.POST['ed_network']
-    show.release_date = request.POST['ed_r_date']
-    show.description = request.POST['ed_description']
-    show.save()
-    return redirect(f'/shows/{show_id}/')
+    errores = Show.objects.basic_validator(request.POST)
+    if len(errores) > 0:
+        for key, value in errores.items():
+            messages.error(request, value)
+        return redirect(f'/shows/{show_id}/edit')
+    else:
+        show = Show.objects.get(id=show_id)
+        show.title = request.POST['title']
+        show.network = request.POST['network']
+        show.release_date = request.POST['r_date']
+        show.description = request.POST['description']
+        show.save()
+        return redirect(f'/shows/{show_id}/')
 
 def del_show(request, show_id):
     show = Show.objects.get(id=show_id)
